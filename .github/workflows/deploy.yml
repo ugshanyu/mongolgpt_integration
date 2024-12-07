@@ -39,12 +39,19 @@ jobs:
             exit 1
           fi
           
-          # Stop existing container if running
-          docker compose down
+          # More thorough cleanup
+          docker compose down --remove-orphans
+          docker system prune -f --volumes
+          
+          # Small pause to ensure resources are released
+          sleep 5
           
           # Build and start new container
-          docker compose build
+          docker compose build --no-cache
           docker compose up -d
+          
+          # Verify the container is running
+          docker ps | grep mongolgpt-frontend
         '
 
     - name: Cleanup
