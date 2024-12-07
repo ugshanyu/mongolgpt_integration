@@ -15,70 +15,36 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Create SSH key
+    - name: Setup SSH
       run: |
         mkdir -p ~/.ssh/
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key.pem
         chmod 600 ~/.ssh/deploy_key.pem
 
-    - name: Create .dockerignore
-      run: |
-        echo "node_modules" > .dockerignore
-        echo ".git" >> .dockerignore
-        echo ".env*" >> .dockerignore
-        
-    - name: Setup frontend deployment directory
-      run: |
-        ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} '
-          mkdir -p ~/frontend-deploy/new
-        '
-
     - name: Copy files to EC2
       run: |
         scp -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no \
-          -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:~/frontend-deploy/new/
+          -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:~/frontend-deploy/
 
-    - name: Zero-downtime deployment
+    - name: Deploy on EC2
       run: |
         ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} '
-          # Copy environment file if it exists in home directory
+          cd ~/frontend-deploy
+          
+          # Copy environment file if it exists
           if [ -f ~/.env_frontend ]; then
-            cp ~/.env_frontend ~/frontend-deploy/new/.env
+            cp ~/.env_frontend .env
           else
-            echo "Warning: .env_frontend file not found in home directory!"
+            echo "No .env_frontend file found!"
             exit 1
           fi
           
-          cd ~/frontend-deploy/new
+          # Stop existing container if running
+          docker compose down
           
-          # Build new container
+          # Build and start new container
           docker compose build
-          
-          # Start new container
           docker compose up -d
-          
-          # Wait for health check
-          echo "Waiting for frontend service to be healthy..."
-          sleep 30
-          
-          # Verify new container is healthy
-          if [ "$(docker inspect -f "{{.State.Health.Status}}" mongolgpt-frontend)" != "healthy" ]; then
-            echo "New frontend container is not healthy. Rolling back..."
-            docker compose down
-            exit 1
-          fi
-          
-          # Remove old deployment if it exists
-          if [ -d ~/frontend-deploy/old ]; then
-            cd ~/frontend-deploy/old
-            docker compose down
-            cd ..
-            rm -rf old
-          fi
-          
-          # Rotate deployments
-          mv ~/frontend-deploy/current ~/frontend-deploy/old 2>/dev/null || true
-          mv ~/frontend-deploy/new ~/frontend-deploy/current
         '
 
     - name: Cleanup
