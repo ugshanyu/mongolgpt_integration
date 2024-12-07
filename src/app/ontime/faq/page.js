@@ -1,5 +1,10 @@
-import { KnowledgeBase } from '@/components/ontime/KnowledgeBase/KnowledgeBase';
+import { Suspense } from 'react';
+import { KnowledgeBaseWrapper } from '@/components/ontime/KnowledgeBase/KnowledgeBase';
 
 export default function KnowledgeBasePage() {
-  return <KnowledgeBase />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <KnowledgeBaseWrapper />
+    </Suspense>
+  );
 }

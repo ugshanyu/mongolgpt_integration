@@ -6,11 +6,17 @@ import { SearchBar } from './SearchBar';
 import { Accordion } from './Accordion';
 import { KNOWLEDGE_BASE } from './KNOWLEDGE_BASE';
 
-export function KnowledgeBase() {
+// Create a wrapper component that uses useSearchParams
+export function KnowledgeBaseWrapper() {
+  const searchParams = useSearchParams();
+  return <KnowledgeBase searchParams={searchParams} />;
+}
+
+// Main component that receives searchParams as a prop
+export function KnowledgeBase({ searchParams }) {
   const [activeAccordion, setActiveAccordion] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTopics, setFilteredTopics] = useState(KNOWLEDGE_BASE);
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const topic = searchParams.get('topic');
