@@ -1,8 +1,13 @@
-name: Deploy to EC2
+# .github/workflows/deploy.yml
+name: Manual Deploy to EC2
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      deployment_message:
+        description: 'Deployment Message'
+        required: false
+        default: 'Manual deployment triggered'
 
 jobs:
   deploy:
@@ -28,3 +33,7 @@ jobs:
           sudo docker-compose down
           sudo docker-compose up --build -d
         '
+
+    - name: Cleanup
+      if: always()
+      run: rm -f ~/.ssh/deploy_key.pem
