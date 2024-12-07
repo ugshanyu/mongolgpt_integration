@@ -1,33 +1,23 @@
 version: '3.8'
 
 services:
-  app:
+  frontend:
     build: .
-    container_name: mongolgpt-backend
+    container_name: mongolgpt-frontend
     ports:
-      - "5000:5000"
-    environment:
-      - MONGODB_URI=mongodb://mongodb:27017/gpt-data-collector
-    depends_on:
-      - mongodb
+      - "3000:3000"
+    env_file:
+      - .env
     networks:
-      - mongolgpt-network
+      - mongolgpt-frontend-network
     restart: always
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - mongolgpt-network
-    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 networks:
-  mongolgpt-network:
+  mongolgpt-frontend-network:
     driver: bridge
-
-volumes:
-  mongodb_data:
