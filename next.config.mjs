@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  basePath: '/front-end',
+  assetPrefix: 'https://logic.mongolai.mn/front-end'
+}
 
-export default nextConfig;
+module.exports = nextConfig
