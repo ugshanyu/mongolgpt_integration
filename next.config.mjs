@@ -1,41 +1,35 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/front-end',
-  assetPrefix: process.env.NODE_ENV === 'production' 
-    ? 'https://logic.mongolai.mn/front-end'
-    : '',
-  images: {
-    domains: ['logic.mongolai.mn'],
-    protocol: 'https'
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
+  reactStrictMode: true,
+  swcMinify: true,
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH,
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
-  // Add security headers
-  async headers() {
+  headers: async () => {
     return [
       {
         source: '/:path*',
         headers: [
           {
-            key: 'Content-Security-Policy',
-            value: "upgrade-insecure-requests; default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data:;"
+            key: 'X-Frame-Options',
+            value: 'DENY',
           },
           {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains'
-          }
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
         ],
-      }
-    ]
+      },
+    ];
   },
-  // Optimize chunk loading
-  webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      Object.assign(config.resolve.alias, {
-        '@/components': path.resolve(__dirname, 'components'),
-      });
-    }
-    return config;
-  },
-  output: 'standalone'
 }
 
 module.exports = nextConfig
