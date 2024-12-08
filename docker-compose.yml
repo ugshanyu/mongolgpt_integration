@@ -1,23 +1,25 @@
 version: '3.8'
-
 services:
   frontend:
     build: .
     container_name: mongolgpt-frontend
     ports:
-      - "3001:3000"  # Changed external port to 3001
+      - "3001:3000"
     env_file:
       - .env
+    environment:
+      - NODE_ENV=production
+      - HTTPS=true
+      - NEXT_PUBLIC_BASE_URL=https://logic.mongolai.mn
     networks:
       - mongolgpt-frontend-network
     restart: always
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:3000"]  # Internal check still uses 3000
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
-
 networks:
   mongolgpt-frontend-network:
     driver: bridge
