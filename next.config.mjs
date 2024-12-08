@@ -1,5 +1,7 @@
-module.exports = {
-  assetPrefix: 'https://logic.mongolai.mn',
-  // Add this if you're behind a proxy
-  basePath: '/front-end',
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // No basePath needed since we're serving from root
+  // No assetPrefix needed since nginx handles routing
 }
+
+module.exports = nextConfig
