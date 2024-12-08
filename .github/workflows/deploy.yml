@@ -1,35 +1,59 @@
-version: '3.8'
-services:
-  frontend:
-    build: 
-      context: .
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-        - NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
-    container_name: mongolgpt-frontend
-    ports:
-      - "3001:3000"
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_BASE_URL=https://logic.mongolai.mn
-    networks:
-      - mongolgpt-frontend-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 512M
+name: Frontend Deploy to EC2
 
-networks:
-  mongolgpt-frontend-network:
-    driver: bridge
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_message:
+        description: 'Deployment Message'
+        required: false
+        default: 'Manual frontend deployment triggered'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh/
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key.pem
+        chmod 600 ~/.ssh/deploy_key.pem
+
+    - name: Copy files to EC2
+      run: |
+        scp -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no \
+          -r ./* ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:~/frontend-deploy/
+
+    - name: Deploy on EC2
+      run: |
+        ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} '
+          cd ~/frontend-deploy
+          
+          # Copy environment file if it exists
+          if [ -f ~/.env_frontend ]; then
+            cp ~/.env_frontend .env
+          else
+            echo "No .env_frontend file found!"
+            exit 1
+          fi
+          
+          # More thorough cleanup
+          docker compose down --remove-orphans
+          docker system prune -f --volumes
+          
+          # Small pause to ensure resources are released
+          sleep 5
+          
+          # Build and start new container
+          docker compose build --no-cache
+          docker compose up -d
+          
+          # Verify the container is running
+          docker ps | grep mongolgpt-frontend
+        '
+
+    - name: Cleanup
+      if: always()
+      run: rm -f ~/.ssh/deploy_key.pem
